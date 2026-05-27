@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 /**
  * PeakAgent Interview — Listing Search.
@@ -17,66 +17,77 @@
  * _api/handlers/front/listings-filter.php. The README has the details.
  */
 
-import { useEffect, useRef, useState } from 'react'
-import { GoogleMap, MarkerF, useJsApiLoader } from '@react-google-maps/api'
-import { fetcher } from '@/lib/fetcher'
-import type { Listing, ListingsFilterResponse } from '@/lib/types'
+import { useEffect, useRef, useState } from "react";
+import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
+import { fetcher } from "@/lib/fetcher";
+import type { Listing, ListingsFilterResponse } from "@/lib/types";
 
-const MAP_DEFAULT_CENTER = { lat: 39.7392, lng: -104.9903 } // Denver
-const MAP_DEFAULT_ZOOM = 10
+const MAP_DEFAULT_CENTER = { lat: 39.7392, lng: -104.9903 }; // Denver
+const MAP_DEFAULT_ZOOM = 10;
+const MAX_NUMBER_OF_BEDS_IN_DB = 5;
+const MAX_NUMBER_OF_BATHS_IN_DB = 5;
 
 export default function Page() {
   // ─── Filter state ────────────────────────────────────────────
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState("");
   // GOAL 1: track filters somehow, starting with beds_min and baths_min, and send that to /handlers/front/listings-filter
+  const [bedsMin, setBedsMin] = useState("");
+  const [bathsMin, setBathMin] = useState("");
 
   // ─── Data ────────────────────────────────────────────────────
-  const [listings, setListings] = useState<Listing[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // ─── Debounced fetch on filter change ────────────────────────
   useEffect(() => {
     const timer = setTimeout(async () => {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       try {
         const { data } = await fetcher.post<ListingsFilterResponse>(
-          '/handlers/front/listings-filter',
+          "/handlers/front/listings-filter",
           {
             search,
             size: 24,
             mls_ids: [526],
             // GOAL 1: include filters (beds + baths) here
+            beds_min: bedsMin ? Number(bedsMin) : undefined,
+            baths_min: bathsMin ? Number(bathsMin) : undefined,
             // GOAL 2: include gps-based filtering to the map edges when the user has dragged/panned the map.
           },
-        )
-        if (!data.ok) throw new Error(data.error ?? 'Request failed')
-        setListings(data.listings)
-        setTotal(data.total)
+        );
+        if (!data.ok) throw new Error(data.error ?? "Request failed");
+        setListings(data.listings);
+        setTotal(data.total);
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e))
+        setError(e instanceof Error ? e.message : String(e));
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }, 250)
-    return () => clearTimeout(timer)
-  }, [search /* GOAL 1: add beds, baths to this dependency array */])
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [
+    search,
+    /* GOAL 1: add beds, baths to this dependency array */
+    bedsMin,
+    bathsMin,
+  ]);
 
   // ─── Map ─────────────────────────────────────────────────────
   const { isLoaded: mapLoaded, loadError: mapError } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? '',
-  })
-  const mapRef = useRef<google.maps.Map | null>(null)
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? "",
+  });
+  const mapRef = useRef<google.maps.Map | null>(null);
 
   // GOAL 2: capture the map ref here so an `onIdle` handler can read
   // map.getBounds() and feed { north, south, east, west } into the next request.
   const onMapLoad = (map: google.maps.Map) => {
-    mapRef.current = map
+    mapRef.current = map;
 
     // ... update filters to map bounds
-  }
+  };
 
   return (
     <div style={styles.page}>
@@ -92,15 +103,37 @@ export default function Page() {
 
         {/* ─── GOAL 1: replace these two boxes with real controls ─── */}
         <div style={styles.filterSlot}>
-          <span style={styles.slotLabel}>Add a "Beds" filter here →</span>
+          <select
+            value={bedsMin}
+            onChange={(e) => setBedsMin(e.target.value)}
+            style={styles.select}
+          >
+            <option value="">Min Beds</option>
+            <option value="1">1+ Beds</option>
+            <option value="2">2+ Beds</option>
+            <option value="3">3+ Beds</option>
+            <option value="4">4+ Beds</option>
+            <option value="5">5+ Beds</option>
+          </select>
         </div>
+
         <div style={styles.filterSlot}>
-          <span style={styles.slotLabel}>Add a "Baths" filter here →</span>
+          <select
+            value={bathsMin}
+            onChange={e => setBathMin(e.target.value)}
+            style={styles.select}
+          >
+            <option value="">Min Baths</option>
+            <option value="1">1+ Baths</option>
+            <option value="2">2+ Baths</option>
+            <option value="3">3+ Baths</option>
+            <option value="4">4+ Baths</option>
+          </select>
         </div>
         {/* ────────────────────────────────────────────────────────── */}
 
         <span style={styles.totalCount}>
-          {loading ? 'Loading…' : `${total.toLocaleString()} listings`}
+          {loading ? "Loading…" : `${total.toLocaleString()} listings`}
         </span>
       </header>
 
@@ -121,7 +154,7 @@ export default function Page() {
           {mapError && <div style={styles.error}>Map failed to load.</div>}
           {mapLoaded && (
             <GoogleMap
-              mapContainerStyle={{ width: '100%', height: '100%' }}
+              mapContainerStyle={{ width: "100%", height: "100%" }}
               center={MAP_DEFAULT_CENTER}
               zoom={MAP_DEFAULT_ZOOM}
               onLoad={onMapLoad}
@@ -146,18 +179,16 @@ export default function Page() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Listing card ──────────────────────────────────────────────
 function ListingCard({ listing }: { listing: Listing }) {
-  const [rawOpen, setRawOpen] = useState(false)
-  const price = listing.cost
-    ? `$${listing.cost.toLocaleString()}`
-    : '—'
-  const beds = listing.beds ?? '—'
-  const baths = listing.baths ?? '—'
-  const sqft = listing.area ? `${listing.area.toLocaleString()} sqft` : null
+  const [rawOpen, setRawOpen] = useState(false);
+  const price = listing.cost ? `$${listing.cost.toLocaleString()}` : "—";
+  const beds = listing.beds ?? "—";
+  const baths = listing.baths ?? "—";
+  const sqft = listing.area ? `${listing.area.toLocaleString()} sqft` : null;
 
   return (
     <article style={styles.card}>
@@ -170,7 +201,7 @@ function ListingCard({ listing }: { listing: Listing }) {
           loading="lazy"
         />
       ) : (
-        <div style={{ ...styles.cardPhoto, background: '#e5e5ea' }} />
+        <div style={{ ...styles.cardPhoto, background: "#e5e5ea" }} />
       )}
       <div style={styles.cardBody}>
         <div style={styles.cardPriceRow}>
@@ -186,28 +217,36 @@ function ListingCard({ listing }: { listing: Listing }) {
           </button>
         </div>
         <div style={styles.cardMeta}>
-          {beds} bd · {baths} ba{sqft ? ` · ${sqft}` : ''}
+          {beds} bd · {baths} ba{sqft ? ` · ${sqft}` : ""}
         </div>
         <div style={styles.cardAddr}>
           {listing.address}
-          {listing.city ? `, ${listing.city}` : ''}
-          {listing.state ? `, ${listing.state}` : ''}
+          {listing.city ? `, ${listing.city}` : ""}
+          {listing.state ? `, ${listing.state}` : ""}
         </div>
       </div>
-      {rawOpen && <RawListingModal listing={listing} onClose={() => setRawOpen(false)} />}
+      {rawOpen && (
+        <RawListingModal listing={listing} onClose={() => setRawOpen(false)} />
+      )}
     </article>
-  )
+  );
 }
 
 // ─── Raw listing modal ─────────────────────────────────────────
-function RawListingModal({ listing, onClose }: { listing: Listing; onClose: () => void }) {
+function RawListingModal({
+  listing,
+  onClose,
+}: {
+  listing: Listing;
+  onClose: () => void;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <div style={styles.modalOverlay} onClick={onClose}>
@@ -228,95 +267,95 @@ function RawListingModal({ listing, onClose }: { listing: Listing; onClose: () =
         <pre style={styles.modalPre}>{JSON.stringify(listing, null, 2)}</pre>
       </div>
     </div>
-  )
+  );
 }
 
 // ─── Styles (inline for simplicity — feel free to refactor) ────
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    background: '#f7f7f8',
+    height: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    background: "#f7f7f8",
   },
   filterBar: {
-    display: 'flex',
-    alignItems: 'center',
+    display: "flex",
+    alignItems: "center",
     gap: 12,
-    padding: '12px 16px',
-    background: '#fff',
-    borderBottom: '1px solid #e5e5ea',
+    padding: "12px 16px",
+    background: "#fff",
+    borderBottom: "1px solid #e5e5ea",
     flexShrink: 0,
   },
   searchInput: {
-    flex: '0 0 280px',
-    padding: '8px 12px',
+    flex: "0 0 280px",
+    padding: "8px 12px",
     fontSize: 14,
-    border: '1px solid #d1d1d6',
+    border: "1px solid #d1d1d6",
     borderRadius: 6,
-    outline: 'none',
+    outline: "none",
   },
   filterSlot: {
-    flex: '0 0 200px',
+    flex: "0 0 200px",
     height: 36,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '2px dashed #c7a8ff',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    border: "2px dashed #c7a8ff",
     borderRadius: 6,
-    background: '#faf5ff',
+    background: "#faf5ff",
   },
   slotLabel: {
     fontSize: 12,
-    color: '#7c3aed',
+    color: "#7c3aed",
     fontWeight: 500,
   },
   totalCount: {
-    marginLeft: 'auto',
+    marginLeft: "auto",
     fontSize: 13,
-    color: '#666',
+    color: "#666",
   },
   error: {
     padding: 12,
-    background: '#fee',
-    color: '#a00',
+    background: "#fee",
+    color: "#a00",
     fontSize: 14,
-    borderBottom: '1px solid #fcc',
+    borderBottom: "1px solid #fcc",
   },
   split: {
     flex: 1,
-    display: 'flex',
+    display: "flex",
     minHeight: 0,
   },
   cards: {
-    width: '40%',
+    width: "40%",
     minWidth: 380,
     maxWidth: 560,
-    overflowY: 'auto',
+    overflowY: "auto",
     padding: 12,
-    display: 'grid',
-    gridTemplateColumns: '1fr',
+    display: "grid",
+    gridTemplateColumns: "1fr",
     gap: 12,
-    alignContent: 'start',
+    alignContent: "start",
   },
   empty: {
-    gridColumn: '1 / -1',
+    gridColumn: "1 / -1",
     padding: 32,
-    textAlign: 'center',
-    color: '#999',
+    textAlign: "center",
+    color: "#999",
   },
   card: {
-    background: '#fff',
-    border: '1px solid #e5e5ea',
+    background: "#fff",
+    border: "1px solid #e5e5ea",
     borderRadius: 8,
-    display: 'flex',
-    flexDirection: 'column',
+    display: "flex",
+    flexDirection: "column",
   },
   cardPhoto: {
-    width: '100%',
-    aspectRatio: '4 / 3',
-    objectFit: 'cover',
-    display: 'block',
+    width: "100%",
+    aspectRatio: "4 / 3",
+    objectFit: "cover",
+    display: "block",
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
   },
@@ -324,9 +363,9 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 10,
   },
   cardPriceRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: 8,
   },
   cardPrice: {
@@ -334,86 +373,94 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
   },
   eyeButton: {
-    border: '1px solid #d1d1d6',
-    background: '#fff',
+    border: "1px solid #d1d1d6",
+    background: "#fff",
     borderRadius: 6,
     width: 28,
     height: 28,
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
     fontSize: 14,
     padding: 0,
     lineHeight: 1,
   },
   modalOverlay: {
-    position: 'fixed',
+    position: "fixed",
     inset: 0,
-    background: 'rgba(0,0,0,0.45)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    background: "rgba(0,0,0,0.45)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 1000,
     padding: 24,
   },
   modal: {
-    background: '#fff',
+    background: "#fff",
     borderRadius: 8,
-    width: 'min(720px, 100%)',
-    maxHeight: '85vh',
-    display: 'flex',
-    flexDirection: 'column',
-    boxShadow: '0 10px 40px rgba(0,0,0,0.25)',
-    overflow: 'hidden',
+    width: "min(720px, 100%)",
+    maxHeight: "85vh",
+    display: "flex",
+    flexDirection: "column",
+    boxShadow: "0 10px 40px rgba(0,0,0,0.25)",
+    overflow: "hidden",
   },
   modalHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '12px 16px',
-    borderBottom: '1px solid #e5e5ea',
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "12px 16px",
+    borderBottom: "1px solid #e5e5ea",
   },
   modalTitle: {
     fontSize: 14,
     fontWeight: 600,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   modalClose: {
-    border: 'none',
-    background: 'transparent',
+    border: "none",
+    background: "transparent",
     fontSize: 18,
-    cursor: 'pointer',
-    color: '#666',
+    cursor: "pointer",
+    color: "#666",
     padding: 4,
     lineHeight: 1,
   },
   modalPre: {
     margin: 0,
     padding: 16,
-    overflow: 'auto',
+    overflow: "auto",
     fontSize: 12,
-    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-    background: '#fafafa',
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+    background: "#fafafa",
     flex: 1,
   },
   cardMeta: {
     fontSize: 12,
-    color: '#444',
+    color: "#444",
     marginTop: 2,
   },
   cardAddr: {
     fontSize: 12,
-    color: '#666',
+    color: "#666",
     marginTop: 4,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   mapPane: {
     flex: 1,
     minWidth: 0,
   },
-}
+  select: {
+  height: 36,
+  padding: '0 12px',
+  border: '1px solid #d1d1d6',
+  borderRadius: 6,
+  background: '#fff',
+  fontSize: 14,
+},
+};
