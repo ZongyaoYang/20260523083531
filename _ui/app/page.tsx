@@ -24,8 +24,17 @@ import type { Listing, ListingsFilterResponse } from "@/lib/types";
 
 const MAP_DEFAULT_CENTER = { lat: 39.7392, lng: -104.9903 }; // Denver
 const MAP_DEFAULT_ZOOM = 10;
-const MAX_NUMBER_OF_BEDS_IN_DB = 5;
-const MAX_NUMBER_OF_BATHS_IN_DB = 5;
+const MAX_NUMBER_OF_BEDS = 5;
+const MAX_NUMBER_OF_BATHS = 5;
+
+//Implement the beds options based on the max number
+const bedOptions = Array.from({ length: MAX_NUMBER_OF_BEDS }, (_, i) => i + 1);
+
+//Implement the beds options based on the max number
+const bathOptions = Array.from(
+  { length: MAX_NUMBER_OF_BATHS },
+  (_, i) => i + 1,
+);
 
 export default function Page() {
   // ─── Filter state ────────────────────────────────────────────
@@ -53,8 +62,8 @@ export default function Page() {
             size: 24,
             mls_ids: [526],
             // GOAL 1: include filters (beds + baths) here
-            beds_min: bedsMin ? Number(bedsMin) : undefined,
-            baths_min: bathsMin ? Number(bathsMin) : undefined,
+            beds: bedsMin ? Number(bedsMin) : undefined,
+            baths: bathsMin ? Number(bathsMin) : undefined,
             // GOAL 2: include gps-based filtering to the map edges when the user has dragged/panned the map.
           },
         );
@@ -102,32 +111,33 @@ export default function Page() {
         />
 
         {/* ─── GOAL 1: replace these two boxes with real controls ─── */}
-        <div style={styles.filterSlot}>
+        <div>
           <select
             value={bedsMin}
             onChange={(e) => setBedsMin(e.target.value)}
             style={styles.select}
           >
             <option value="">Min Beds</option>
-            <option value="1">1+ Beds</option>
-            <option value="2">2+ Beds</option>
-            <option value="3">3+ Beds</option>
-            <option value="4">4+ Beds</option>
-            <option value="5">5+ Beds</option>
+
+            {bedOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}+ Beds
+              </option>
+            ))}
           </select>
         </div>
 
-        <div style={styles.filterSlot}>
+        <div>
           <select
             value={bathsMin}
-            onChange={e => setBathMin(e.target.value)}
+            onChange={(e) => setBathMin(e.target.value)}
             style={styles.select}
           >
             <option value="">Min Baths</option>
-            <option value="1">1+ Baths</option>
-            <option value="2">2+ Baths</option>
-            <option value="3">3+ Baths</option>
-            <option value="4">4+ Baths</option>
+
+            {bathOptions.map(n => (
+              <option key={n} value={n}>{n}+ Baths</option>
+            ))}
           </select>
         </div>
         {/* ────────────────────────────────────────────────────────── */}
@@ -456,11 +466,11 @@ const styles: Record<string, React.CSSProperties> = {
     minWidth: 0,
   },
   select: {
-  height: 36,
-  padding: '0 12px',
-  border: '1px solid #d1d1d6',
-  borderRadius: 6,
-  background: '#fff',
-  fontSize: 14,
-},
+    height: 36,
+    padding: "0 12px",
+    border: "1px solid #d1d1d6",
+    borderRadius: 6,
+    background: "#fff",
+    fontSize: 14,
+  },
 };
