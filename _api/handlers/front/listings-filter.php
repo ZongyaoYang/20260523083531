@@ -72,6 +72,18 @@ if (!empty($mls_ids)) {
 //
 // ─────────────────────────────────────────────────────────────────────
 
+$beds  = (int)($_POST['beds'] ?? 0);
+$baths = (float)($_POST['baths'] ?? 0); //In API response the baths could be 2.5 
+
+// Beds filter
+if ($beds > 0) {
+    $must[] = ['range' => ['beds' => ['gte' => $beds]]];
+}
+
+// Baths filter
+if ($baths > 0) {
+    $must[] = ['range' => ['baths' => ['gte' => $baths]]];
+}
 
 // ─── GOAL 2 (stretch): support a map viewport bounding box ───────────
 //   When the user pans the map, the frontend sends viewport bounds to search like this:
