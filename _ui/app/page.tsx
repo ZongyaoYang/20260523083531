@@ -20,7 +20,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GoogleMap, MarkerF, useJsApiLoader } from "@react-google-maps/api";
 import { fetcher } from "@/lib/fetcher";
-import type { Listing, ListingsFilterResponse } from "@/lib/types";
+import type { Listing, ListingsFilterResponse, MapBound } from "@/lib/types";
 
 const MAP_DEFAULT_CENTER = { lat: 39.7392, lng: -104.9903 }; // Denver
 const MAP_DEFAULT_ZOOM = 10;
@@ -49,6 +49,26 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  //Goal2
+  const [bounds, setBounds] = useState<MapBound | null>(null);
+  const onMapIdle = () => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const currentBounds = map.getBounds();
+    if (!currentBounds) return;
+
+    const ne = currentBounds.getNorthEast();
+    const sw = currentBounds.getSouthWest();
+
+    setBounds({
+      north: ne.lat(),
+      east: ne.lng(),
+      south: sw.lat(),
+      west: sw.lng(),
+    });
+  };
+
   // ─── Debounced fetch on filter change ────────────────────────
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -65,6 +85,7 @@ export default function Page() {
             beds: bedsMin ? Number(bedsMin) : undefined,
             baths: bathsMin ? Number(bathsMin) : undefined,
             // GOAL 2: include gps-based filtering to the map edges when the user has dragged/panned the map.
+            bounds,
           },
         );
         if (!data.ok) throw new Error(data.error ?? "Request failed");
@@ -82,6 +103,7 @@ export default function Page() {
     /* GOAL 1: add beds, baths to this dependency array */
     bedsMin,
     bathsMin,
+    bounds,
   ]);
 
   // ─── Map ─────────────────────────────────────────────────────
@@ -135,8 +157,10 @@ export default function Page() {
           >
             <option value="">Min Baths</option>
 
-            {bathOptions.map(n => (
-              <option key={n} value={n}>{n}+ Baths</option>
+            {bathOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}+ Baths
+              </option>
             ))}
           </select>
         </div>
@@ -175,6 +199,7 @@ export default function Page() {
                 mapTypeControl: false,
                 fullscreenControl: false,
               }}
+              onIdle={onMapIdle}
             >
               {listings.map((l) =>
                 l.gps_lat != null && l.gps_lng != null ? (
