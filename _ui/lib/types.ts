@@ -41,3 +41,10 @@ export interface ListingsFilterResponse {
   total: number
   error?: string
 }
+
+export interface MapBound {
+  north: number
+  south: number
+  east: number
+  west: number
+}
