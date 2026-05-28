@@ -90,6 +90,26 @@ if ($baths > 0) {
 //     { "bounds": { "north": 40.1, "south": 39.8, "east": -104.9, "west": -105.3 } }
 // ─────────────────────────────────────────────────────────────────────
 
+$bounds = $_POST['bounds'] ?? null;
+
+if (is_array($bounds)) {
+    $north = (float)($bounds['north'] ?? 0);
+    $south = (float)($bounds['south'] ?? 0);
+    $east  = (float)($bounds['east'] ?? 0);
+    $west  = (float)($bounds['west'] ?? 0);
+
+    if ($north && $south && $east && $west) {
+        $must[] = ['range' => ['gps_lat' => [
+            'gte' => $south,
+            'lte' => $north,
+        ]]];
+
+        $must[] = ['range' => ['gps_lng' => [
+            'gte' => $west,
+            'lte' => $east,
+        ]]];
+    }
+}
 
 try {
     $res = (new ElasticClient())->query('listings', [
